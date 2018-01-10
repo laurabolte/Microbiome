@@ -582,7 +582,96 @@ Species=select(Species,-1,-9,-10)
 write.table(Species,"../Heatmaps/Species_map.txt", sep='\t')
 ```
 
-**Loop to Plot heatmaps** 
+**Heatmap - example fruit - species ** 
+
+*Subset to fruits*
+```
+Speciesmap=read.table("../Heatmaps/Species_Strains/Species_strains_map.txt", sep='\t', header=T)
+Speciesmap=Speciesmap[,-12]
+summary(fruit$Diet)
+fruit1=Speciesmap[grepl("fruit", Speciesmap$Diet),]
+fruit=fruit1[!grepl("yoghurt_lf_fruits",fruit1$Diet),]
+fruit=fruit[!grepl("fromage_frais_fruits", fruit$Diet),]
+fruit=fruit[!grepl("how_often_fruit", fruit$Diet),]
+fruit=fruit[!grepl("group_fruits", fruit$Diet),]
+fruit=as.data.frame(fruit[,c(-2)])   
+write.table(fruit, '../Heatmaps/Fruit.txt', sep='\t')
+#in Excel shorten names and reimport into R
+fruit=read.table("../Heatmaps/Species_Strains/Example fruit/Fruit_names.txt", sep='\t', header=T)
+```
+*Plot the heatmap*
+```
+library(ggplot2)
+library(gplots)
+library(gridExtra)
+library(reshape2)
+
+#color CD/UC/IBS/HC = their coefficients, colordepth: their original, non-inverted p-vals
+#color Meta-p: coefficient of HC, colordepth: Meta-p 
+
+fruit$CD_color="grey"
+fruit$UC_color="grey"
+fruit$IBS_color="grey"
+fruit$HC_color="grey"
+fruit$Metap_color="grey"
+fruit=fruit[,-11]
+
+#CD
+fruit[(fruit$CD_p > 0.05 & fruit$CD_Coef > 0),]$CD_color<-"1"
+fruit[(fruit$CD_p <= 0.05 & fruit$CD_p > 0.00005 & fruit$CD_Coef > 0),]$CD_color<-"2"
+fruit[(fruit$CD_p <= 0.00005 & fruit$CD_Coef > 0),]$CD_color<-"3"
+
+fruit[(fruit$CD_p > 0.05 & fruit$CD_Coef < 0),]$CD_color<-"-1"
+fruit[(fruit$CD_p <= 0.05 & fruit$CD_p > 0.00005 & fruit$CD_Coef < 0),]$CD_color <-"-2"
+fruit[(fruit$CD_p <= 0.00005 & fruit$CD_Coef < 0),]$CD_color <-"-3"
+
+#UC
+fruit[(fruit$UC_p > 0.05 & fruit$UC_Coef > 0),]$UC_color<-"1"
+fruit[(fruit$UC_p <= 0.05 & fruit$UC_p > 0.00005 & fruit$UC_Coef > 0),]$UC_color<-"2"
+fruit[(fruit$UC_p <= 0.00005 & fruit$UC_Coef > 0),]$UC_color<-"3"
+
+fruit[(fruit$UC_p > 0.05 & fruit$UC_Coef < 0),]$UC_color<-"-1"
+fruit[(fruit$UC_p <= 0.05 & fruit$UC_p > 0.00005 & fruit$UC_Coef < 0),]$UC_color <-"-2"
+fruit[(fruit$UC_p <= 0.00005 & fruit$UC_Coef < 0),]$UC_color <-"-3"
+
+#IBS
+fruit[(fruit$IBS_p > 0.05 & fruit$IBS_Coef > 0),]$IBS_color<-"1"
+fruit[(fruit$IBS_p <= 0.05 & fruit$IBS_p > 0.00005 & fruit$IBS_Coef > 0),]$IBS_color<-"2"
+fruit[(fruit$IBS_p <= 0.00005 & fruit$IBS_Coef > 0),]$IBS_color<-"3"
+
+fruit[(fruit$IBS_p > 0.05 & fruit$IBS_Coef < 0),]$IBS_color<-"-1"
+fruit[(fruit$IBS_p <= 0.05 & fruit$IBS_p > 0.00005 & fruit$IBS_Coef < 0),]$IBS_color <-"-2"
+fruit[(fruit$IBS_p <= 0.00005 & fruit$IBS_Coef < 0),]$IBS_color <-"-3"
+
+#HC
+fruit[(fruit$HC_p > 0.05 & fruit$HC_Coef > 0),]$HC_color<-"1"
+fruit[(fruit$HC_p <= 0.05 & fruit$HC_p > 0.00005 & fruit$HC_Coef > 0),]$HC_color<-"2"
+fruit[(fruit$HC_p <= 0.00005 & fruit$HC_Coef > 0),]$HC_color<-"3"
+
+fruit[(fruit$HC_p > 0.05 & fruit$HC_Coef < 0),]$HC_color<-"-1"
+fruit[(fruit$HC_p <= 0.05 & fruit$HC_p > 0.00005 & fruit$HC_Coef < 0),]$HC_color <-"-2"
+fruit[(fruit$HC_p <= 0.00005 & fruit$HC_Coef < 0),]$HC_color <-"-3"
+
+#Meta
+fruit[(fruit$meta_p > 0.05 & fruit$HC_Coef > 0),]$Metap_color<-"1"
+fruit[(fruit$meta_p <= 0.05 & fruit$meta_p > 0.00005 & fruit$HC_Coef > 0),]$Metap_color<-"2"
+fruit[(fruit$meta_p <= 0.00005 & fruit$HC_Coef > 0),]$Metap_color<-"3"
+
+fruit[(fruit$meta_p > 0.05 & fruit$HC_Coef < 0),]$Metap_color<-"-1"
+fruit[(fruit$meta_p <= 0.05 & fruit$meta_p > 0.00005 & fruit$HC_Coef < 0),]$Metap_color <-"-2"
+fruit[(fruit$meta_p <= 0.00005 & fruit$HC_Coef < 0),]$Metap_color <-"-3"
+
+for_plot=fruit[,c(1,11,12,13,14,15)]
+rownames(for_plot)=for_plot$Species
+for_plot$Species=NULL 
+for_plot$Species=0
+for_plot$Species=rownames(for_plot)
+a_for_plot=melt(for_plot, id.vars="Species")
+
+ggplot (a_for_plot, aes(variable, Species)) + geom_tile(aes(fill=value), colour="white") + scale_fill_manual(breaks=c("-1","-2","-3","1","2","3"), values=c("#deebf7","#9ecae1","#3182bd", "#fee0d2", "#fc9272", "#de2d26" ), name="p-value", labels=c("P > 5e-02","P < 5e-02", "P < 5e-05","P > 5e-02","P < 5e-02", "P < 5e-05")) + theme(panel.background=element_blank(), axis.text=element_text(colour="black")) + labs(x="Dataset", y="Fruit-Species") + scale_x_discrete (labels=c("CD (205)","UC (124)","IBS (223)", "HC (872)","Meta (1424)"))
+```
+
+**Loop through all results to plot heatmaps automatically for all foods**    TO BE FIXED
 ```
 Speciesmap=read.table("../Heatmaps/Species_strains_map.txt", sep='\t', header=T)
 Speciesmap=Speciesmap[,-12]
